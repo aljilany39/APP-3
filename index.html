@@ -232,7 +232,7 @@ function recordCustomerTransaction(){
   document.getElementById('customerAmount').value=''; document.getElementById('customerDesc').value='';
 }
 
-// Suppliers (similar to customers)
+// Suppliers
 function addSupplierInput(){let n=document.getElementById('newSupplierName').value;if(!n)return;if(!suppliers.find(s=>s.name===n)){suppliers.push({name:n,balance:0,history:[]}); updateSupplierSelect(); renderSupplier(); document.getElementById('newSupplierName').value='';}}
 function updateSupplierSelect(){let s=document.getElementById('supplierSelect'); s.innerHTML='<option value="">Select Supplier</option>'; suppliers.forEach(c=>s.innerHTML+=`<option value="${c.name}">${c.name}</option>`);}
 function renderSupplier(){let t=document.getElementById('supplierTable'); t.innerHTML='<tr><th>Name</th><th>Balance</th><th>History</th></tr>'; suppliers.forEach((s,i)=>t.innerHTML+=`<tr><td>${s.name}</td><td>${s.balance.toFixed(2)}</td><td><button onclick="viewSupplierHistory(${i})">View</button></td></tr>`);}
@@ -255,14 +255,14 @@ function recordSupplierTransaction(){
   document.getElementById('supplierAmount').value=''; document.getElementById('supplierDesc').value='';
 }
 
-// Orders (affect cash/bank automatically)
+// Orders
 function addOrder(){
   let name=document.getElementById('orderName').value;
   let total=parseFloat(document.getElementById('orderCost').value)||0;
   let advance=parseFloat(document.getElementById('orderAdvance').value)||0;
   let payment=document.getElementById('orderPayment').value;
   let desc=document.getElementById('orderDesc').value||'';
-  if(!name || advance<=0 || !payment){alert('Enter order name, advance, and payment'); return;}
+  if(!name || total<=0 || advance<0 || !payment){alert('Fill all fields');return;}
   ordersList.push({name,total,advance,payment,desc});
   let [ptype,pname]=payment.split('-');
   let acc=(ptype==='cash'?cashAccounts:bankAccounts).find(a=>a.name===pname);
@@ -272,10 +272,7 @@ function addOrder(){
   renderCash(); renderBank();
   document.getElementById('orderName').value=''; document.getElementById('orderCost').value=''; document.getElementById('orderAdvance').value=''; document.getElementById('orderDesc').value='';
 }
-function renderOrders(){
-  let t=document.getElementById('orderTable'); t.innerHTML='<tr><th>Order</th><th>Total</th><th>Advance</th><th>Payment Account</th><th>Delete</th></tr>';
-  ordersList.forEach((o,i)=>t.innerHTML+=`<tr><td>${o.name}</td><td>${o.total.toFixed(2)}</td><td>${o.advance.toFixed(2)}</td><td>${o.payment}</td><td><button onclick="deleteOrder(${i})">Delete</button></td></tr>`);
-}
+function renderOrders(){let t=document.getElementById('orderTable'); t.innerHTML='<tr><th>Order</th><th>Total</th><th>Advance</th><th>Payment Account</th><th>Delete</th></tr>'; ordersList.forEach((o,i)=>t.innerHTML+=`<tr><td>${o.name}</td><td>${o.total.toFixed(2)}</td><td>${o.advance.toFixed(2)}</td><td>${o.payment}</td><td><button onclick="deleteOrder(${i})">Delete</button></td></tr>`);}
 function deleteOrder(i){let o=ordersList[i]; let [ptype,pname]=o.payment.split('-'); let acc=(ptype==='cash'?cashAccounts:bankAccounts).find(a=>a.name===pname); acc.amount-=o.advance; acc.history.pop(); ordersList.splice(i,1); renderOrders(); renderCash(); renderBank();}
 
 // Goals
@@ -289,12 +286,22 @@ function renderShipmentCompanies(){let s=document.getElementById('shipmentCompan
 function addShipment(){let comp=document.getElementById('shipmentCompanySelect').value; if(!comp){alert('Select company'); return;} let prod=document.getElementById('shipmentProduct').value; let boxes=parseInt(document.getElementById('shipmentBoxes').value)||0; let track=document.getElementById('shipmentTracking').value; if(!prod || boxes<=0 || !track){alert('Fill all shipment info'); return;} if(!shipments[comp]) shipments[comp]=[]; shipments[comp].push({prod,boxes,track}); renderShipments(); document.getElementById('shipmentProduct').value=''; document.getElementById('shipmentBoxes').value=''; document.getElementById('shipmentTracking').value='';}
 function renderShipments(){let div=document.getElementById('shipmentTables'); div.innerHTML=''; for(let comp in shipments){let html=`<h3>${comp}</h3><table><tr><th>Product</th><th>Boxes</th><th>Tracking</th></tr>`; shipments[comp].forEach(s=>html+=`<tr><td>${s.prod}</td><td>${s.boxes}</td><td>${s.track}</td></tr>`); html+='</table>'; div.innerHTML+=html;}}
 
-// History Modal for Cash/Bank/Customer/Supplier
+// History Modal
 function viewCashHistory(i){let c=cashAccounts[i]; showHistoryModal(`Cash: ${c.name}`, c.history);}
 function viewBankHistory(i){let b=bankAccounts[i]; showHistoryModal(`Bank: ${b.name}`, b.history);}
-function viewCustomerHistory(i){let c=customers[i]; showHistoryModal(`Customer: ${c.name}`, c.history);}
-function viewSupplierHistory(i){let s=suppliers[i]; showHistoryModal(`Supplier: ${s.name}`, s.history);}
-function showHistoryModal(title, history){document.getElementById('modalTitle').innerText=title; let t=document.getElementById('modalTable'); t.innerHTML='<tr><th>Date</th><th>Type</th><th>Amount</th><th>Related</th><th>Description</th><th>Balance</th><th>Delete</th></tr>'; history.forEach((h,i)=>t.innerHTML+=`<tr><td>${h.date}</td><td>${h.type}</td><td>${h.amount.toFixed(2)}</td><td>${h.related}</td><td>${h.desc}</td><td>${h.balance.toFixed(2)}</td><td><button onclick="deleteHistory('${title}',${i})">Delete</button></td></tr>`); document.getElementById('historyModal').style.display='block';}
+function viewCustomerHistory(i){let c=customers[i]; if(!c.history)c.history=[]; showHistoryModal(`Customer: ${c.name}`, c.history);}
+function viewSupplierHistory(i){let s=suppliers[i]; if(!s.history)s.history=[]; showHistoryModal(`Supplier: ${s.name}`, s.history);}
+function showHistoryModal(title, history){
+  document.getElementById('modalTitle').innerText=title;
+  let t=document.getElementById('modalTable'); 
+  t.innerHTML='<tr><th>Date</th><th>Type</th><th>Amount</th><th>Related</th><th>Description</th><th>Balance</th><th>Delete</th></tr>';
+  history.forEach((h,i)=>t.innerHTML+=`<tr>
+    <td>${h.date}</td><td>${h.type}</td><td>${h.amount.toFixed(2)}</td>
+    <td>${h.related}</td><td>${h.desc}</td><td>${h.balance.toFixed(2)}</td>
+    <td><button onclick="deleteHistory('${title}',${i})">Delete</button></td>
+  </tr>`);
+  document.getElementById('historyModal').style.display='block';
+}
 function closeModal(){document.getElementById('historyModal').style.display='none';}
 function deleteHistory(title,i){
   let type=title.split(':')[0].toLowerCase(); let name=title.split(':')[1].trim(); let acc;
@@ -303,7 +310,6 @@ function deleteHistory(title,i){
   else if(type==='customer') acc=customers.find(a=>a.name===name);
   else if(type==='supplier') acc=suppliers.find(a=>a.name===name);
   let h=acc.history[i];
-  // reverse cash/bank if applicable
   if(type==='customer' || type==='supplier'){
     let [ptype,pname]=h.related.split('-'); let a=(ptype==='cash'?cashAccounts:bankAccounts).find(x=>x.name===pname);
     let change=h.type==='debit'? -h.amount:h.amount; a.amount+=change; a.history.pop(); renderCash(); renderBank();
