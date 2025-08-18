@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>برنامج محاسبي — نسخة HTML محلية</title>
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root { color-scheme: light; }
+    html { scroll-behavior: smooth; }
+    /* لإخفاء أسهم الأرقام في بعض المتصفحات */
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+    /* جداول قابلة للتمرير */
+    .table-wrap { overflow:auto; max-height: 55vh; }
+    .badge { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <!-- شريط علوي -->
+  <header class="bg-white shadow sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-indigo-600/10 grid place-items-center text-indigo-600 font-bold">MG</div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-semibold">برنامج محاسبي — نسخة HTML محلية</h1>
+          <p class="text-xs text-slate-500">يعمل دون إنترنت — التخزين في LocalStorage</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btnExport" class="px-3 py-2 rounded-2xl bg-emerald-600 text-white hover:bg-emerald-700 transition">نسخ احتياطي (تصدير)</button>
+        <label class="px-3 py-2 rounded-2xl bg-slate-200 text-slate-800 hover:bg-slate-300 transition cursor-pointer">
+          استيراد بيانات
+          <input id="importFile" type="file" accept="application/json" class="hidden" />
+        </label>
+        <button id="btnClearAll" class="px-3 py-2 rounded-2xl bg-rose-600 text-white hover:bg-rose-700 transition" title="حذف كل البيانات">تفريغ الكل</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- محتوى -->
+  <main class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+    <!-- تبويبات -->
+    <nav class="mb-6">
+      <ul id="tabs" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+        <li><button data-tab="dashboard" class="tab btn">اللوحة</button></li>
+        <li><button data-tab="cash" class="tab btn">الصندوق</button></li>
+        <li><button data-tab="bank" class="tab btn">البنك</button></li>
+        <li><button data-tab="suppliers" class="tab btn">الموردون</button></li>
+        <li><button data-tab="customers" class="tab btn">العملاء</button></li>
+        <li><button data-tab="expenses" class="tab btn">المصروفات</button></li>
+        <li><button data-tab="reports" class="tab btn">التقارير</button></li>
+        <li><button data-tab="about" class="tab btn">حول</button></li>
+      </ul>
+    </nav>
+
+    <!-- الأقسام -->
+    <section id="dashboard" class="tab-content hidden">
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="bg-white p-4 rounded-2xl shadow">
+          <h3 class="text-sm text-slate-500">رصيد الصندوق</h3>
+          <p id="dashCash" class="text-2xl font-bold mt-2">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow">
+          <h3 class="text-sm text-slate-500">رصيد البنك</h3>
+          <p id="dashBank" class="text-2xl font-bold mt-2">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow">
+          <h3 class="text-sm text-slate-500">إجمالي المصروفات (الشهر)</h3>
+          <p id="dashMonthExp" class="text-2xl font-bold mt-2">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow">
+          <h3 class="text-sm text-slate-500">ذمم العملاء/الموردين</h3>
+          <p id="dashARAP" class="text-2xl font-bold mt-2">0</p>
+        </div>
+      </div>
+      <div class="mt-6 grid gap-4 lg:grid-cols-2">
+        <div class="bg-white p-4 rounded-2xl shadow">
+          <h3 class="font-semibold mb-3">آخر حركات الصندوق</h3>
+          <div class="table-wrap">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-100 sticky top-0">
+                <tr>
+                  <th class="p-2 text-right">التاريخ</th>
+                  <th class="p-2 text-right">البيان</th>
+                  <th class="p-2 text-right">نوع</th>
+                  <th class="p-2 text-right">المبلغ</th>
+                </tr>
+              </thead>
+              <tbody id="dashCashTable"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow">
+          <h3 class="font-semibold mb-3">آخر حركات البنك</h3>
+          <div class="table-wrap">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-100 sticky top-0">
+                <tr>
+                  <th class="p-2 text-right">التاريخ</th>
+                  <th class="p-2 text-right">الحساب</th>
+                  <th class="p-2 text-right">البيان</th>
+                  <th class="p-2 text-right">نوع</th>
+                  <th class="p-2 text-right">المبلغ</th>
+                </tr>
+              </thead>
+              <tbody id="dashBankTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="cash" class="tab-content hidden">
+      <div class="bg-white p-4 rounded-2xl shadow">
+        <h2 class="text-lg font-semibold mb-4">حركات الصندوق</h2>
+        <form id="cashForm" class="grid gap-3 sm:grid-cols-5 mb-4">
+          <input type="date" required class="border rounded-xl p-2" name="date" />
+          <input type="text" required class="border rounded-xl p-2" name="desc" placeholder="البيان" />
+          <select name="type" class="border rounded-xl p-2">
+            <option value="in">إيراد</option>
+            <option value="out">مصروف</option>
+          </select>
+          <input type="number" required step="0.01" class="border rounded-xl p-2" name="amount" placeholder="المبلغ" />
+          <button class="bg-indigo-600 text-white rounded-xl p-2">إضافة</button>
+        </form>
+        <div class="flex items-center gap-2 mb-2 text-sm">
+          <span class="badge bg-emerald-100 text-emerald-700">الرصيد: <b id="cashBalance" class="mr-1">0</b></span>
+        </div>
+        <div class="table-wrap">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-100 sticky top-0">
+              <tr>
+                <th class="p-2 text-right">#</th>
+                <th class="p-2 text-right">التاريخ</th>
+                <th class="p-2 text-right">البيان</th>
+                <th class="p-2 text-right">نوع</th>
+                <th class="p-2 text-right">المبلغ</th>
+                <th class="p-2 text-right">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="cashTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="bank" class="tab-content hidden">
+      <div class="bg-white p-4 rounded-2xl shadow">
+        <h2 class="text-lg font-semibold mb-4">حركات البنك</h2>
+        <form id="bankForm" class="grid gap-3 sm:grid-cols-6 mb-4">
+          <input type="date" required class="border rounded-xl p-2" name="date" />
+          <input type="text" required class="border rounded-xl p-2" name="account" placeholder="اسم الحساب البنكي" />
+          <input type="text" required class="border rounded-xl p-2" name="desc" placeholder="البيان" />
+          <select name="type" class="border rounded-xl p-2">
+            <option value="deposit">إيداع</option>
+            <option value="withdraw">سحب</option>
+          </select>
+          <input type="number" required step="0.01" class="border rounded-xl p-2" name="amount" placeholder="المبلغ" />
+          <button class="bg-indigo-600 text-white rounded-xl p-2">إضافة</button>
+        </form>
+        <div class="flex items-center gap-2 mb-2 text-sm">
+          <span class="badge bg-emerald-100 text-emerald-700">الرصيد الإجمالي: <b id="bankBalance" class="mr-1">0</b></span>
+        </div>
+        <div class="table-wrap">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-100 sticky top-0">
+              <tr>
+                <th class="p-2 text-right">#</th>
+                <th class="p-2 text-right">التاريخ</th>
+                <th class="p-2 text-right">الحساب</th>
+                <th class="p-2 text-right">البيان</th>
+                <th class="p-2 text-right">نوع</th>
+                <th class="p-2 text-right">المبلغ</th>
+                <th class="p-2 text-right">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="bankTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="suppliers" class="tab-content hidden">
+      <div class="grid gap-4 lg:grid-cols-3">
+        <div class="bg-white p-4 rounded-2xl shadow lg:col-span-1">
+          <h2 class="text-lg font-semibold mb-3">الموردون</h2>
+          <form id="supplierForm" class="grid gap-2 mb-3">
+            <input name="name" required class="border rounded-xl p-2" placeholder="اسم المورد" />
+            <input name="phone" class="border rounded-xl p-2" placeholder="هاتف (اختياري)" />
+            <button class="bg-indigo-600 text-white rounded-xl p-2">إضافة مورد</button>
+          </form>
+          <ul id="supplierList" class="space-y-2"></ul>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow lg:col-span-2">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold">كشف حساب المورد</h3>
+            <div>
+              <select id="supplierSelect" class="border rounded-xl p-2"></select>
+            </div>
+          </div>
+          <form id="supplierEntryForm" class="grid gap-2 sm:grid-cols-5 mb-3">
+            <input type="date" name="date" required class="border rounded-xl p-2" />
+            <input type="text" name="desc" required class="border rounded-xl p-2" placeholder="البيان" />
+            <select name="kind" class="border rounded-xl p-2">
+              <option value="debit">فاتورة (له)</option>
+              <option value="credit">دفعة (عليه)</option>
+            </select>
+            <input type="number" step="0.01" required name="amount" class="border rounded-xl p-2" placeholder="المبلغ" />
+            <button class="bg-indigo-600 text-white rounded-xl p-2">إضافة قيد</button>
+          </form>
+          <div class="flex items-center gap-2 mb-2 text-sm">
+            <span class="badge bg-emerald-100 text-emerald-700">الرصيد الحالي: <b id="supplierBalance" class="mr-1">0</b></span>
+          </div>
+          <div class="table-wrap">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-100 sticky top-0">
+                <tr>
+                  <th class="p-2 text-right">#</th>
+                  <th class="p-2 text-right">التاريخ</th>
+                  <th class="p-2 text-right">البيان</th>
+                  <th class="p-2 text-right">طبيعة</th>
+                  <th class="p-2 text-right">المبلغ</th>
+                  <th class="p-2 text-right">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="supplierEntries"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="customers" class="tab-content hidden">
+      <div class="grid gap-4 lg:grid-cols-3">
+        <div class="bg-white p-4 rounded-2xl shadow lg:col-span-1">
+          <h2 class="text-lg font-semibold mb-3">العملاء</h2>
+          <form id="customerForm" class="grid gap-2 mb-3">
+            <input name="name" required class="border rounded-xl p-2" placeholder="اسم العميل" />
+            <input name="phone" class="border rounded-xl p-2" placeholder="هاتف (اختياري)" />
+            <button class="bg-indigo-600 text-white rounded-xl p-2">إضافة عميل</button>
+          </form>
+          <ul id="customerList" class="space-y-2"></ul>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow lg:col-span-2">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold">كشف حساب العميل</h3>
+            <div>
+              <select id="customerSelect" class="border rounded-xl p-2"></select>
+            </div>
+          </div>
+          <form id="customerEntryForm" class="grid gap-2 sm:grid-cols-5 mb-3">
+            <input type="date" name="date" required class="border rounded-xl p-2" />
+            <input type="text" name="desc" required class="border rounded-xl p-2" placeholder="البيان" />
+            <select name="kind" class="border rounded-xl p-2">
+              <option value="credit">فاتورة (عليه)</option>
+              <option value="debit">دفعة (له)</option>
+            </select>
+            <input type="number" step="0.01" required name="amount" class="border rounded-xl p-2" placeholder="المبلغ" />
+            <button class="bg-indigo-600 text-white rounded-xl p-2">إضافة قيد</button>
+          </form>
+          <div class="flex items-center gap-2 mb-2 text-sm">
+            <span class="badge bg-emerald-100 text-emerald-700">الرصيد الحالي: <b id="customerBalance" class="mr-1">0</b></span>
+          </div>
+          <div class="table-wrap">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-100 sticky top-0">
+                <tr>
+                  <th class="p-2 text-right">#</th>
+                  <th class="p-2 text-right">التاريخ</th>
+                  <th class="p-2 text-right">البيان</th>
+                  <th class="p-2 text-right">طبيعة</th>
+                  <th class="p-2 text-right">المبلغ</th>
+                  <th class="p-2 text-right">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="customerEntries"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="expenses" class="tab-content hidden">
+      <div class="bg-white p-4 rounded-2xl shadow">
+        <h2 class="text-lg font-semibold mb-4">المصروفات</h2>
+        <form id="expenseForm" class="grid gap-3 sm:grid-cols-6 mb-4">
+          <input type="date" required class="border rounded-xl p-2" name="date" />
+          <input type="text" required class="border rounded-xl p-2" name="category" placeholder="البند/التصنيف" />
+          <input type="text" required class="border rounded-xl p-2" name="desc" placeholder="الوصف" />
+          <select name="paidFrom" class="border rounded-xl p-2">
+            <option value="cash">من الصندوق</option>
+            <option value="bank">من البنك</option>
+          </select>
+          <input type="number" required step="0.01" class="border rounded-xl p-2" name="amount" placeholder="المبلغ" />
+          <button class="bg-indigo-600 text-white rounded-xl p-2">إضافة</button>
+        </form>
+        <div class="table-wrap">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-100 sticky top-0">
+              <tr>
+                <th class="p-2 text-right">#</th>
+                <th class="p-2 text-right">التاريخ</th>
+                <th class="p-2 text-right">التصنيف</th>
+                <th class="p-2 text-right">الوصف</th>
+                <th class="p-2 text-right">مدفوع من</th>
+                <th class="p-2 text-right">المبلغ</th>
+                <th class="p-2 text-right">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="expenseTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="reports" class="tab-content hidden">
+      <div class="grid gap-4 lg:grid-cols-2">
+        <div class="bg-white p-4 rounded-2xl shadow">
+          <h3 class="font-semibold mb-4">تقارير سريعة</h3>
+          <form id="reportForm" class="grid gap-2 sm:grid-cols-4 items-end">
+            <label class="text-sm">من
+              <input type="date" name="from" class="border rounded-xl p-2 w-full" />
+            </label>
+            <label class="text-sm">إلى
+              <input type="date" name="to" class="border rounded-xl p-2 w-full" />
+            </label>
+            <select name="kind" class="border rounded-xl p-2">
+              <option value="cash">تقرير الصندوق</option>
+              <option value="bank">تقرير البنك</option>
+              <option value="expenses">تقرير المصروفات</option>
+            </select>
+            <button class="bg-indigo-600 text-white rounded-xl p-2">عرض</button>
+          </form>
+          <div class="mt-4 table-wrap">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-100 sticky top-0">
+                <tr>
+                  <th class="p-2 text-right">التاريخ</th>
+                  <th class="p-2 text-right">البيان</th>
+                  <th class="p-2 text-right">المبلغ</th>
+                </tr>
+              </thead>
+              <tbody id="reportTable"></tbody>
+              <tfoot>
+                <tr class="bg-slate-50">
+                  <td colspan="2" class="p-2 text-right font-bold">الإجمالي</td>
+                  <td class="p-2" id="reportTotal">0</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow">
+          <h3 class="font-semibold mb-4">كشف حساب عميل/مورد</h3>
+          <form id="statementForm" class="grid gap-2 sm:grid-cols-5 items-end">
+            <select name="partyType" class="border rounded-xl p-2">
+              <option value="customer">عميل</option>
+              <option value="supplier">مورد</option>
+            </select>
+            <select name="partyId" id="statementParty" class="border rounded-xl p-2"></select>
+            <label class="text-sm">من
+              <input type="date" name="from" class="border rounded-xl p-2 w-full" />
+            </label>
+            <label class="text-sm">إلى
+              <input type="date" name="to" class="border rounded-xl p-2 w-full" />
+            </label>
+            <button class="bg-indigo-600 text-white rounded-xl p-2">عرض</button>
+          </form>
+          <div class="mt-4 table-wrap">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-100 sticky top-0">
+                <tr>
+                  <th class="p-2 text-right">التاريخ</th>
+                  <th class="p-2 text-right">البيان</th>
+                  <th class="p-2 text-right">طبيعة</th>
+                  <th class="p-2 text-right">المبلغ</th>
+                </tr>
+              </thead>
+              <tbody id="statementTable"></tbody>
+              <tfoot>
+                <tr class="bg-slate-50">
+                  <td colspan="3" class="p-2 text-right font-bold">الرصيد</td>
+                  <td class="p-2" id="statementBalance">0</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="tab-content hidden">
+      <div class="bg-white p-4 rounded-2xl shadow">
+        <h2 class="text-lg font-semibold mb-2">حول النظام</h2>
+        <p class="text-sm text-slate-600 leading-7">
+          هذا نموذج مبسط لبرنامج محاسبي يعمل محليًا داخل المتصفح دون إنترنت. البيانات تُحفظ في
+          <span class="font-semibold">LocalStorage</span>. يمكنك تصدير/استيراد نسخة احتياطية بصيغة JSON من الأعلى.
+          الوحدات: الصندوق، البنك، الموردون، العملاء، المصروفات، التقارير، وكشوف الحساب.
+        </p>
+        <ul class="list-disc pr-6 mt-2 text-sm text-slate-700">
+          <li>الواجهة عربية (RTL) وتصميم خفيف مع Tailwind.</li>
+          <li>يمكنك حذف أي سجل بالنقر على زر الحذف بجواره.</li>
+          <li>الرصيد في المورد: موجب = نحن مدينون له (له علينا)، سالب = لنا عنده.</li>
+          <li>الرصيد في العميل: موجب = العميل مدين لنا (عليه)، سالب = لنا دَين له.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <!-- قوالب صغيرة -->
+  <template id="listItem">
+    <li class="border rounded-xl p-2 flex items-center justify-between">
+      <div>
+        <p class="font-medium name"></p>
+        <p class="text-xs text-slate-500 phone"></p>
+      </div>
+      <div class="text-sm">
+        رصيد: <span class="font-semibold balance">0</span>
+      </div>
+    </li>
+  </template>
+
+  <!-- سكريبت التطبيق -->
+  <script>
+    // ====== أدوات مساعدة عامة ======
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    const fmt = n => (Number(n)||0).toLocaleString('ar-EG', {minimumFractionDigits:2, maximumFractionDigits:2});
+    const parseNum = v => Math.round((Number(v)||0) * 100) / 100;
+
+    const store = {
+      get(k, def){ try{ return JSON.parse(localStorage.getItem(k)) ?? def }catch{ return def } },
+      set(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
+    };
+
+    // مفاتيح التخزين
+    const K = {
+      CASH: 'acc_cash',
+      BANK: 'acc_bank',
+      SUPPLIERS: 'acc_suppliers',
+      CUSTOMERS: 'acc_customers',
+      EXP: 'acc_expenses'
+    };
+
+    // تحميل افترات
+    const state = {
+      cash: store.get(K.CASH, []), // {id,date,desc,type(in|out),amount}
+      bank: store.get(K.BANK, []), // {id,date,account,desc,type(deposit|withdraw),amount}
+      suppliers: store.get(K.SUPPLIERS, []), // {id,name,phone,entries:[{id,date,desc,kind(debit|credit),amount}]}
+      customers: store.get(K.CUSTOMERS, []), // {id,name,phone,entries:[{id,date,desc,kind(debit|credit),amount}]}
+      expenses: store.get(K.EXP, []) // {id,date,category,desc,paidFrom,amount}
+    };
+
+    const saveAll = () => {
+      store.set(K.CASH, state.cash);
+      store.set(K.BANK, state.bank);
+      store.set(K.SUPPLIERS, state.suppliers);
+      store.set(K.CUSTOMERS, state.customers);
+      store.set(K.EXP, state.expenses);
+      updateUI();
+    };
+
+    const uid = () => Math.random().toString(36).slice(2,9);
+
+    // ====== التبويبات ======
+    function activateTab(name){
+      $$('.tab').forEach(b=>{
+        b.className = 'tab btn px-3 py-2 rounded-2xl border bg-white hover:bg-slate-50';
+        if(b.dataset.tab===name){ b.className = 'tab btn px-3 py-2 rounded-2xl border bg-indigo-600 text-white'; }
+      });
+      $$('.tab-content').forEach(s=>s.classList.add('hidden'));
+      const sec = document.getElementById(name);
+      if(sec) sec.classList.remove('hidden');
+      if(name==='reports'){ refreshStatementPartyOptions(); }
+    }
+
+    $$('#tabs .tab').forEach(btn=> btn.addEventListener('click', ()=> activateTab(btn.dataset.tab)) );
+
+    // ====== الصندوق ======
+    $('#cashForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const f = new FormData(e.target);
+      state.cash.unshift({ id: uid(), date: f.get('date'), desc: f.get('desc'), type: f.get('type'), amount: parseNum(f.get('amount')) });
+      e.target.reset();
+      saveAll();
+    });
+
+    function cashBalance(){
+      return state.cash.reduce((s, r)=> s + (r.type==='in'? r.amount : -r.amount), 0);
+    }
+
+    function drawCash(){
+      $('#cashBalance').textContent = fmt(cashBalance());
+      const body = $('#cashTable'); body.innerHTML='';
+      state.cash.forEach((r, i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2">${state.cash.length - i}</td>
+          <td class="p-2">${r.date||''}</td>
+          <td class="p-2">${r.desc||''}</td>
+          <td class="p-2">${r.type==='in'?'إيراد':'مصروف'}</td>
+          <td class="p-2">${fmt(r.amount)}</td>
+          <td class="p-2"><button class="text-rose-600 hover:underline" data-id="${r.id}">حذف</button></td>`;
+        body.appendChild(tr);
+      });
+      body.addEventListener('click', (ev)=>{
+        const id = ev.target?.dataset?.id; if(!id) return;
+        state.cash = state.cash.filter(x=>x.id!==id); saveAll();
+      }, { once:true });
+
+      // لوحة
+      const dtab = $('#dashCashTable'); dtab.innerHTML='';
+      state.cash.slice(0,7).forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2">${r.date||''}</td>
+          <td class="p-2">${r.desc||''}</td>
+          <td class="p-2">${r.type==='in'?'إيراد':'مصروف'}</td>
+          <td class="p-2">${fmt(r.amount)}</td>`;
+        dtab.appendChild(tr);
+      });
+    }
+
+    // ====== البنك ======
+    $('#bankForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const f = new FormData(e.target);
+      state.bank.unshift({ id: uid(), date: f.get('date'), account: f.get('account'), desc: f.get('desc'), type: f.get('type'), amount: parseNum(f.get('amount')) });
+      e.target.reset();
+      saveAll();
+    });
+
+    function bankBalance(){
+      return state.bank.reduce((s, r)=> s + (r.type==='deposit'? r.amount : -r.amount), 0);
+    }
+
+    function drawBank(){
+      $('#bankBalance').textContent = fmt(bankBalance());
+      const body = $('#bankTable'); body.innerHTML='';
+      state.bank.forEach((r, i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2">${state.bank.length - i}</td>
+          <td class="p-2">${r.date||''}</td>
+          <td class="p-2">${r.account||''}</td>
+          <td class="p-2">${r.desc||''}</td>
+          <td class="p-2">${r.type==='deposit'?'إيداع':'سحب'}</td>
+          <td class="p-2">${fmt(r.amount)}</td>
+          <td class="p-2"><button class="text-rose-600 hover:underline" data-id="${r.id}">حذف</button></td>`;
+        body.appendChild(tr);
+      });
+      body.addEventListener('click', (ev)=>{
+        const id = ev.target?.dataset?.id; if(!id) return;
+        state.bank = state.bank.filter(x=>x.id!==id); saveAll();
+      }, { once:true });
+
+      // لوحة
+      const dtab = $('#dashBankTable'); dtab.innerHTML='';
+      state.bank.slice(0,7).forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2">${r.date||''}</td>
+          <td class="p-2">${r.account||''}</td>
+          <td class="p-2">${r.desc||''}</td>
+          <td class="p-2">${r.type==='deposit'?'إيداع':'سحب'}</td>
+          <td class="p-2">${fmt(r.amount)}</td>`;
+        dtab.appendChild(tr);
+      });
+    }
+
+    // ====== الموردون ======
+    $('#supplierForm').addEventListener('submit', (e)=>{
+      e.preventDefault(); const f=new FormData(e.target);
+      state.suppliers.push({ id: uid(), name: f.get('name'), phone: f.get('phone'), entries: [] });
+      e.target.reset(); saveAll(); refreshSupplierLists();
+    });
+
+    function supplierBalance(sup){
+      // في المورد: debit = له (علينا), credit = عليه (لنا)
+      return (sup.entries||[]).reduce((s, r)=> s + (r.kind==='debit'? r.amount : -r.amount), 0);
+    }
+
+    function refreshSupplierLists(){
+      const list = $('#supplierList'); list.innerHTML='';
+      const tpl = $('#listItem');
+      state.suppliers.forEach(sup=>{
+        const li = tpl.content.cloneNode(true);
+        li.querySelector('.name').textContent = sup.name;
+        li.querySelector('.phone').textContent = sup.phone||'';
+        li.querySelector('.balance').textContent = fmt(supplierBalance(sup));
+        list.appendChild(li);
+      });
+      const sel = $('#supplierSelect'); sel.innerHTML = state.suppliers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+      refreshStatementPartyOptions();
+      drawSupplierEntries();
+    }
+
+    $('#supplierEntryForm').addEventListener('submit', (e)=>{
+      e.preventDefault(); const f=new FormData(e.target);
+      const id = $('#supplierSelect').value; const s = state.suppliers.find(x=>x.id===id); if(!s) return;
+      s.entries.unshift({ id: uid(), date: f.get('date'), desc: f.get('desc'), kind: f.get('kind'), amount: parseNum(f.get('amount')) });
+      e.target.reset(); saveAll(); drawSupplierEntries(); refreshSupplierLists();
+    });
+
+    function drawSupplierEntries(){
+      const id = $('#supplierSelect').value; const s = state.suppliers.find(x=>x.id===id); const body = $('#supplierEntries'); body.innerHTML='';
+      $('#supplierBalance').textContent = s? fmt(supplierBalance(s)) : '0';
+      (s?.entries||[]).forEach((r, i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2">${(s.entries||[]).length - i}</td>
+          <td class="p-2">${r.date||''}</td>
+          <td class="p-2">${r.desc||''}</td>
+          <td class="p-2">${r.kind==='debit'?'فاتورة (له)':'دفعة (عليه)'}</td>
+          <td class="p-2">${fmt(r.amount)}</td>
+          <td class="p-2"><button class="text-rose-600 hover:underline" data-id="${r.id}">حذف</button></td>`;
+        body.appendChild(tr);
+      });
+      body.addEventListener('click', (ev)=>{
+        const idBtn = ev.target?.dataset?.id; if(!idBtn || !s) return;
+        s.entries = s.entries.filter(x=>x.id!==idBtn); saveAll(); drawSupplierEntries(); refreshSupplierLists();
+      }, { once:true });
+    }
+
+    $('#supplierSelect').addEventListener('change', drawSupplierEntries);
+
+    // ====== العملاء ======
+    $('#customerForm').addEventListener('submit', (e)=>{
+      e.preventDefault(); const f=new FormData(e.target);
+      state.customers.push({ id: uid(), name: f.get('name'), phone: f.get('phone'), entries: [] });
+      e.target.reset(); saveAll(); refreshCustomerLists();
+    });
+
+    function customerBalance(cus){
+      // في العميل: credit = عليه (مدين لنا), debit = له (دائن لنا)
+      return (cus.entries||[]).reduce((s, r)=> s + (r.kind==='credit'? r.amount : -r.amount), 0);
+    }
+
+    function refreshCustomerLists(){
+      const list = $('#customerList'); list.innerHTML='';
+      const tpl = $('#listItem');
+      state.customers.forEach(cus=>{
+        const li = tpl.content.cloneNode(true);
+        li.querySelector('.name').textContent = cus.name;
+        li.querySelector('.phone').textContent = cus.phone||'';
+        li.querySelector('.balance').textContent = fmt(customerBalance(cus));
+        list.appendChild(li);
+      });
+      const sel = $('#customerSelect'); sel.innerHTML = state.customers.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+      refreshStatementPartyOptions();
+      drawCustomerEntries();
+    }
+
+    $('#customerEntryForm').addEventListener('submit', (e)=>{
+      e.preventDefault(); const f=new FormData(e.target);
+      const id = $('#customerSelect').value; const c = state.customers.find(x=>x.id===id); if(!c) return;
+      c.entries.unshift({ id: uid(), date: f.get('date'), desc: f.get('desc'), kind: f.get('kind'), amount: parseNum(f.get('amount')) });
+      e.target.reset(); saveAll(); drawCustomerEntries(); refreshCustomerLists();
+    });
+
+    function drawCustomerEntries(){
+      const id = $('#customerSelect').value; const c = state.customers.find(x=>x.id===id); const body = $('#customerEntries'); body.innerHTML='';
+      $('#customerBalance').textContent = c? fmt(customerBalance(c)) : '0';
+      (c?.entries||[]).forEach((r, i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2">${(c.entries||[]).length - i}</td>
+          <td class="p-2">${r.date||''}</td>
+          <td class="p-2">${r.desc||''}</td>
+          <td class="p-2">${r.kind==='credit'?'فاتورة (عليه)':'دفعة (له)'}</td>
+          <td class="p-2">${fmt(r.amount)}</td>
+          <td class="p-2"><button class="text-rose-600 hover:underline" data-id="${r.id}">حذف</button></td>`;
+        body.appendChild(tr);
+      });
+      body.addEventListener('click', (ev)=>{
+        const idBtn = ev.target?.dataset?.id; if(!idBtn || !c) return;
+        c.entries = c.entries.filter(x=>x.id!==idBtn); saveAll(); drawCustomerEntries(); refreshCustomerLists();
+      }, { once:true });
+    }
+
+    $('#customerSelect').addEventListener('change', drawCustomerEntries);
+
+    // ====== المصروفات ======
+    $('#expenseForm').addEventListener('submit', (e)=>{
+      e.preventDefault(); const f=new FormData(e.target);
+      const row = { id: uid(), date: f.get('date'), category: f.get('category'), desc: f.get('desc'), paidFrom: f.get('paidFrom'), amount: parseNum(f.get('amount')) };
+      state.expenses.unshift(row);
+      // اثر المصروف على الصندوق/البنك
+      if(row.paidFrom==='cash'){ state.cash.unshift({ id: uid(), date: row.date, desc: `مصروف: ${row.category} — ${row.desc}`, type: 'out', amount: row.amount }); }
+      else { state.bank.unshift({ id: uid(), date: row.date, account: 'عام', desc: `مصروف: ${row.category} — ${row.desc}`, type: 'withdraw', amount: row.amount }); }
+      e.target.reset(); saveAll(); drawExpenses();
+    });
+
+    function drawExpenses(){
+      const body = $('#expenseTable'); body.innerHTML='';
+      state.expenses.forEach((r, i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2">${state.expenses.length - i}</td>
+          <td class="p-2">${r.date||''}</td>
+          <td class="p-2">${r.category||''}</td>
+          <td class="p-2">${r.desc||''}</td>
+          <td class="p-2">${r.paidFrom==='cash'?'الصندوق':'البنك'}</td>
+          <td class="p-2">${fmt(r.amount)}</td>
+          <td class="p-2"><button class="text-rose-600 hover:underline" data-id="${r.id}">حذف</button></td>`;
+        body.appendChild(tr);
+      });
+      body.addEventListener('click', (ev)=>{
+        const id = ev.target?.dataset?.id; if(!id) return;
+        state.expenses = state.expenses.filter(x=>x.id!==id); saveAll(); drawExpenses();
+      }, { once:true });
+    }
+
+    // ====== التقارير ======
+    function filterByDate(rows, from, to){
+      if(!from && !to) return rows;
+      return rows.filter(r=>{
+        const d = new Date(r.date||'1970-01-01');
+        return (!from || d >= new Date(from)) && (!to || d <= new Date(to+'T23:59:59'));
+      });
+    }
+
+    $('#reportForm').addEventListener('submit', (e)=>{
+      e.preventDefault(); const f=new FormData(e.target);
+      const from=f.get('from'), to=f.get('to'), kind=f.get('kind');
+      let rows=[], mapRow, total=0;
+      if(kind==='cash'){
+        rows = filterByDate(state.cash, from, to);
+        mapRow = r=>({date:r.date, desc:r.desc+` (${r.type==='in'?'إيراد':'مصروف'})`, amount: r.type==='in'? r.amount : -r.amount});
+      } else if(kind==='bank'){
+        rows = filterByDate(state.bank, from, to);
+        mapRow = r=>({date:r.date, desc:`${r.account} — ${r.desc} (${r.type==='deposit'?'إيداع':'سحب'})`, amount: r.type==='deposit'? r.amount : -r.amount});
+      } else {
+        rows = filterByDate(state.expenses, from, to);
+        mapRow = r=>({date:r.date, desc:`${r.category} — ${r.desc}`, amount: -r.amount});
+      }
+      const body = $('#reportTable'); body.innerHTML='';
+      filterByDate(rows, from, to).map(mapRow).forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="p-2">${r.date}</td><td class="p-2">${r.desc}</td><td class="p-2">${fmt(r.amount)}</td>`;
+        total += r.amount; body.appendChild(tr);
+      });
+      $('#reportTotal').textContent = fmt(total);
+    });
+
+    function refreshStatementPartyOptions(){
+      const partySel = $('#statementParty');
+      const t = $('#statementForm select[name=partyType]').value;
+      if(t==='customer') partySel.innerHTML = state.customers.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+      else partySel.innerHTML = state.suppliers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+    }
+
+    $('#statementForm select[name=partyType]').addEventListener('change', refreshStatementPartyOptions);
+
+    $('#statementForm').addEventListener('submit', (e)=>{
+      e.preventDefault(); const f=new FormData(e.target);
+      const type = f.get('partyType'); const id = f.get('partyId');
+      const from=f.get('from'), to=f.get('to');
+      const isCus = type==='customer';
+      const party = isCus ? state.customers.find(x=>x.id===id) : state.suppliers.find(x=>x.id===id);
+      const entries = filterByDate(party?.entries||[], from, to);
+      const body = $('#statementTable'); body.innerHTML='';
+      let bal = 0;
+      entries.forEach(r=>{
+        const amt = (isCus ? (r.kind==='credit'? r.amount : -r.amount) : (r.kind==='debit'? r.amount : -r.amount));
+        bal += amt;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="p-2">${r.date||''}</td><td class="p-2">${r.desc||''}</td><td class="p-2">${r.kind}</td><td class="p-2">${fmt(r.amount)}</td>`;
+        body.appendChild(tr);
+      });
+      $('#statementBalance').textContent = fmt(bal);
+    });
+
+    // ====== النسخ الاحتياطي ======
+    $('#btnExport').addEventListener('click', ()=>{
+      const data = JSON.stringify(state, null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `backup-accounting-${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+
+    $('#importFile').addEventListener('change', async (e)=>{
+      const file = e.target.files?.[0]; if(!file) return;
+      const txt = await file.text();
+      try{
+        const obj = JSON.parse(txt);
+        state.cash = obj.cash||[];
+        state.bank = obj.bank||[];
+        state.suppliers = obj.suppliers||[];
+        state.customers = obj.customers||[];
+        state.expenses = obj.expenses||[];
+        saveAll(); alert('تم استيراد البيانات بنجاح');
+      }catch{ alert('ملف غير صالح'); }
+      e.target.value = '';
+    });
+
+    $('#btnClearAll').addEventListener('click', ()=>{
+      if(confirm('هل أنت متأكد من حذف كل البيانات؟ لا يمكن التراجع.')){
+        state.cash = []; state.bank = []; state.suppliers = []; state.customers = []; state.expenses = [];
+        saveAll();
+      }
+    });
+
+    // ====== لوحة التحكم ======
+    function drawDashboard(){
+      $('#dashCash').textContent = fmt(cashBalance());
+      $('#dashBank').textContent = fmt(bankBalance());
+      // مصروفات الشهر الحالي
+      const now = new Date();
+      const monthExp = state.expenses.filter(r=>{
+        const d = new Date(r.date||'1970-01-01');
+        return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+      }).reduce((s, r)=> s + r.amount, 0);
+      $('#dashMonthExp').textContent = fmt(monthExp);
+      // ذمم (إجمالي رصيد العملاء + الموردين)
+      const ar = state.customers.reduce((s,c)=> s + customerBalance(c), 0);
+      const ap = state.suppliers.reduce((s,su)=> s + supplierBalance(su), 0);
+      $('#dashARAP').textContent = fmt(ar + ap);
+    }
+
+    // ====== تحديث الواجهة العامة ======
+    function updateUI(){
+      drawCash(); drawBank(); drawExpenses(); drawSupplierEntries(); drawCustomerEntries();
+      refreshSupplierLists(); refreshCustomerLists(); drawDashboard();
+    }
+
+    // بداية التشغيل
+    activateTab('dashboard');
+    updateUI();
+  </script>
+</body>
+</html>
