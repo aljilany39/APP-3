@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>برنامج محاسبي</title>
+  <style>
+    body {
+      font-family: Tahoma, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+    }
+    header {
+      background: #2c3e50;
+      color: #fff;
+      padding: 1rem;
+      text-align: center;
+    }
+    main {
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    section {
+      background: #fff;
+      padding: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    h2 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-bottom: 1rem;
+    }
+    input, select, button, textarea {
+      padding: .5rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      flex: 1;
+      min-width: 120px;
+    }
+    button {
+      background: #3498db;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: .5rem;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: .5rem;
+      text-align: center;
+    }
+    th {
+      background: #eee;
+    }
+    @media (min-width: 768px) {
+      main {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>💼 برنامج محاسبي</h1>
+  </header>
+  <main>
+    <!-- الصندوق -->
+    <section id="cashSection">
+      <h2>💰 الصندوق</h2>
+      <form id="cashForm">
+        <input type="text" placeholder="الوصف">
+        <input type="number" placeholder="المبلغ">
+        <select>
+          <option value="debit">مدين</option>
+          <option value="credit">دائن</option>
+        </select>
+        <button>➕ إضافة حركة</button>
+      </form>
+      <table id="cashTable">
+        <tr><th>التاريخ</th><th>الوصف</th><th>مدين</th><th>دائن</th><th>الرصيد</th><th>حذف</th></tr>
+      </table>
+    </section>
+
+    <!-- البنك -->
+    <section id="bankSection">
+      <h2>🏦 البنك</h2>
+      <form id="bankForm">
+        <input type="text" placeholder="الوصف">
+        <input type="number" placeholder="المبلغ">
+        <select>
+          <option value="debit">مدين</option>
+          <option value="credit">دائن</option>
+        </select>
+        <button>➕ إضافة حركة</button>
+      </form>
+      <table id="bankTable">
+        <tr><th>التاريخ</th><th>الوصف</th><th>مدين</th><th>دائن</th><th>الرصيد</th><th>حذف</th></tr>
+      </table>
+    </section>
+
+    <!-- العملاء -->
+    <section id="customersSection">
+      <h2>👥 العملاء</h2>
+      <form id="customerForm">
+        <input type="text" placeholder="اسم العميل">
+        <button>➕ إضافة عميل</button>
+      </form>
+      <table id="customerTable">
+        <tr><th>العميل</th><th>الرصيد</th><th>حذف</th></tr>
+      </table>
+      <h3>حركات العملاء</h3>
+      <form id="customerTxnForm">
+        <input type="text" placeholder="اسم العميل">
+        <input type="text" placeholder="الوصف">
+        <input type="number" placeholder="المبلغ">
+        <select>
+          <option value="debit">مدين</option>
+          <option value="credit">دائن</option>
+        </select>
+        <button>➕ إضافة حركة</button>
+      </form>
+      <table id="customerTxnTable">
+        <tr><th>العميل</th><th>الوصف</th><th>مدين</th><th>دائن</th><th>الرصيد</th><th>حذف</th></tr>
+      </table>
+    </section>
+
+    <!-- الموردون -->
+    <section id="suppliersSection">
+      <h2>🏭 الموردون</h2>
+      <form id="supplierForm">
+        <input type="text" placeholder="اسم المورد">
+        <button>➕ إضافة مورد</button>
+      </form>
+      <table id="supplierTable">
+        <tr><th>المورد</th><th>الرصيد</th><th>حذف</th></tr>
+      </table>
+      <h3>حركات الموردين</h3>
+      <form id="supplierTxnForm">
+        <input type="text" placeholder="اسم المورد">
+        <input type="text" placeholder="الوصف">
+        <input type="number" placeholder="المبلغ">
+        <select>
+          <option value="debit">مدين</option>
+          <option value="credit">دائن</option>
+        </select>
+        <button>➕ إضافة حركة</button>
+      </form>
+      <table id="supplierTxnTable">
+        <tr><th>المورد</th><th>الوصف</th><th>مدين</th><th>دائن</th><th>الرصيد</th><th>حذف</th></tr>
+      </table>
+    </section>
+
+    <!-- المصروفات -->
+    <section id="expensesSection">
+      <h2>📉 المصروفات</h2>
+      <form id="expenseForm">
+        <input type="text" placeholder="البند">
+        <input type="number" placeholder="المبلغ">
+        <button>➕ إضافة</button>
+      </form>
+      <table id="expenseTable">
+        <tr><th>البند</th><th>المبلغ</th><th>حذف</th></tr>
+      </table>
+    </section>
+
+    <!-- الطلبات قيد التصنيع -->
+    <section id="ordersSection">
+      <h2>🛠️ الطلبات قيد التصنيع</h2>
+      <form id="orderForm">
+        <input type="text" placeholder="اسم الطلب">
+        <input type="number" placeholder="التكلفة">
+        <input type="number" placeholder="العربون">
+        <button>➕ إضافة</button>
+      </form>
+      <table id="orderTable">
+        <tr><th>الطلب</th><th>التكلفة</th><th>العربون</th><th>حذف</th></tr>
+      </table>
+    </section>
+
+    <!-- الأهداف -->
+    <section id="goalsSection">
+      <h2>🎯 الأهداف</h2>
+      <form id="goalForm">
+        <input type="text" placeholder="الهدف">
+        <button>➕ إضافة</button>
+      </form>
+      <table id="goalTable">
+        <tr><th>الهدف</th><th>حذف</th></tr>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    // دالة عامة لإضافة صفوف للجداول وتخزينها
+    function addRow(formId, tableId, fields) {
+      const form = document.getElementById(formId);
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        const table = document.getElementById(tableId);
+        const tr = document.createElement('tr');
+        fields.forEach(f => {
+          const td = document.createElement('td');
+          if (f.type === 'input') td.textContent = form.querySelector(f.sel).value;
+          else if (f.type === 'select') td.textContent = form.querySelector(f.sel).value;
+          tr.appendChild(td);
+        });
+        const tdDel = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.textContent = '🗑️';
+        btn.onclick = () => tr.remove();
+        tdDel.appendChild(btn);
+        tr.appendChild(tdDel);
+        table.appendChild(tr);
+        form.reset();
+      });
+    }
+
+    // الصندوق
+    addRow('cashForm','cashTable',[
+      {type:'input', sel:'input[type=text]'},
+      {type:'input', sel:'input[type=number]'},
+      {type:'select', sel:'select'}
+    ]);
+
+    // البنك
+    addRow('bankForm','bankTable',[
+      {type:'input', sel:'input[type=text]'},
+      {type:'input', sel:'input[type=number]'},
+      {type:'select', sel:'select'}
+    ]);
+
+    // المصروفات
+    addRow('expenseForm','expenseTable',[
+      {type:'input', sel:'input[type=text]'},
+      {type:'input', sel:'input[type=number]'}
+    ]);
+
+    // الطلبات
+    addRow('orderForm','orderTable',[
+      {type:'input', sel:'input[placeholder="اسم الطلب"]'},
+      {type:'input', sel:'input[placeholder="التكلفة"]'},
+      {type:'input', sel:'input[placeholder="العربون"]'}
+    ]);
+
+    // الأهداف
+    addRow('goalForm','goalTable',[
+      {type:'input', sel:'input[type=text]'}
+    ]);
+  </script>
+</body>
+</html>
